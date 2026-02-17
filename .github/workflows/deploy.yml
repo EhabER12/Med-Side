@@ -1,0 +1,108 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Add server to known_hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy to Server
+      env:
+        SSH_USER: ${{ secrets.SSH_USER }}
+        SSH_HOST: ${{ secrets.SSH_HOST }}
+      run: |
+        ssh $SSH_USER@$SSH_HOST << 'EOF'
+          set -e
+          
+          echo "🚀 Starting deployment..."
+          
+          # Navigate to project (create if doesn't exist)
+          if [ ! -d "/var/www/genoun-main" ]; then
+            echo "📂 Cloning repository for first time..."
+            cd /var/www
+            git clone https://github.com/EhabER12/testing.git genoun-main
+            cd genoun-main
+          else
+            echo "📥 Pulling latest changes..."
+            cd /var/www/genoun-main
+            
+            # Clean any uncommitted changes and conflicts
+            echo "🧹 Cleaning working directory..."
+            git reset --hard HEAD
+            git clean -fd
+            
+            # Fetch latest changes
+            echo "📡 Fetching from remote..."
+            git fetch origin main
+            
+            # Reset to remote state (handles divergent branches)
+            echo "🔄 Resetting to remote state..."
+            git reset --hard origin/main
+            
+            echo "✨ Working directory synced with remote"
+          fi
+          
+          # Install backend dependencies
+          echo "🔧 Installing backend dependencies..."
+          cd api
+          npm install --production
+          
+          # Run enrollment script for old course payments (one-time fix)
+          echo "📚 Checking for unenrolled paid students..."
+          if [ -f "src/scripts/enrollPaidStudents.js" ]; then
+            npm run script:enroll-paid-students || echo "⚠️ Enrollment script not available or already run"
+          fi
+          
+          # Install pnpm globally if not exists
+          if ! command -v pnpm &> /dev/null; then
+            npm install -g pnpm
+          fi
+          
+          # Install frontend dependencies with pnpm
+          echo "🎨 Installing frontend dependencies..."
+          cd ../web
+          pnpm install
+          
+          # Build frontend
+          echo "🏗️ Building frontend..."
+          pnpm run build
+          
+          # Restart or start services with PM2
+          echo "♻️ Restarting services..."
+          cd ..
+          
+          # Check if PM2 processes exist
+          if pm2 list | grep -q "genoun"; then
+            pm2 restart all
+          else
+            # First time - start with ecosystem file
+            if [ -f "ecosystem.config.js" ]; then
+              pm2 start ecosystem.config.js
+            else
+              # Start manually
+              pm2 start api/src/server.js --name genoun-api
+              cd web && pm2 start npm --name genoun-web -- start
+            fi
+            pm2 save
+          fi
+          
+          echo "✅ Deployment successful!"
+          pm2 status
+        EOF
