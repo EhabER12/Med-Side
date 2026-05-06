@@ -22,6 +22,26 @@ export class SettingsRepository extends BaseRepository {
     });
   }
 
+  async getDashboardSettings() {
+    const settings = await this.model
+      .findOne()
+      .select(
+        "-paymentGateways -notifications -whatsappQrCode -qrCode -subscriptionTeachers"
+      );
+
+    if (settings) {
+      return settings;
+    }
+
+    return this.model.create({
+      siteName: "Genoun LLC",
+      siteDescription: "Your next adventure starts here",
+      contactEmail: "info@travelagency.com",
+      contactPhone: "+1234567890",
+      address: "123 Travel Street, Adventure City",
+    });
+  }
+
   async updateSettings(data, userId) {
     const settings = await this.getSettings();
 

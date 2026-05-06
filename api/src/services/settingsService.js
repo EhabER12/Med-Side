@@ -59,7 +59,7 @@ export class SettingsService {
   }
 
   async getSettings() {
-    return this.settingsRepository.getSettings();
+    return this.settingsRepository.getDashboardSettings();
   }
 
   async getPublicSettings() {
