@@ -255,7 +255,8 @@ export class SettingsService {
       settingsData.apiKeys = apiKeys;
     }
 
-    return this.settingsRepository.updateSettings(settingsData, userId);
+    await this.settingsRepository.updateSettings(settingsData, userId);
+    return this.settingsRepository.getDashboardSettings();
   }
 
   async getDecryptedApiKeys() {
