@@ -409,7 +409,13 @@ export const getPublicWebsiteSettingsThunk = createAsyncThunk<
   { rejectValue: string }
 >("settings/getPublic", async (_, thunkAPI) => {
   try {
-    const response = await axiosInstance.get("/settings/public"); // New endpoint
+    const response = await axiosInstance.get("/settings/public", {
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+      params: { _t: Date.now() },
+    }); // New endpoint
     return response.data as GetPublicWebsiteSettingsResponse;
   } catch (error: any) {
     console.error("Error fetching public website settings:", error);
