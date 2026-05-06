@@ -237,22 +237,36 @@ export class SettingsService {
       settingsData.homepageSections.hero.backgroundImage = this.getPublicUrl(heroBackgroundFile.path);
     }
 
-    // Handle API keys encryption
+    // Handle API keys encryption. General settings saves should not clear or
+    // re-encrypt keys unless the API keys tab explicitly sends string values.
     if (settingsData.apiKeys) {
       const apiKeys = { ...settingsData.apiKeys };
-      
-      // Encrypt Gemini API key if provided
-      if (apiKeys.geminiApiKey && apiKeys.geminiApiKey.trim()) {
-        apiKeys.geminiApiKey = this.encryptApiKey(apiKeys.geminiApiKey.trim());
+      const hasGeminiKey =
+        typeof apiKeys.geminiApiKey === "string" && apiKeys.geminiApiKey.trim();
+      const hasGoogleCredentials =
+        typeof apiKeys.googleCloudCredentials === "string" &&
+        apiKeys.googleCloudCredentials.trim();
+
+      if (!hasGeminiKey && !hasGoogleCredentials) {
+        delete settingsData.apiKeys;
+      } else {
+        if (hasGeminiKey) {
+          apiKeys.geminiApiKey = this.encryptApiKey(apiKeys.geminiApiKey.trim());
+        } else {
+          delete apiKeys.geminiApiKey;
+        }
+
+        if (hasGoogleCredentials) {
+          apiKeys.googleCloudCredentials = this.encryptApiKey(
+            apiKeys.googleCloudCredentials.trim()
+          );
+        } else {
+          delete apiKeys.googleCloudCredentials;
+        }
+
+        apiKeys.lastUpdated = new Date();
+        settingsData.apiKeys = apiKeys;
       }
-      
-      // Encrypt Google Cloud credentials if provided
-      if (apiKeys.googleCloudCredentials && apiKeys.googleCloudCredentials.trim()) {
-        apiKeys.googleCloudCredentials = this.encryptApiKey(apiKeys.googleCloudCredentials.trim());
-      }
-      
-      apiKeys.lastUpdated = new Date();
-      settingsData.apiKeys = apiKeys;
     }
 
     await this.settingsRepository.updateSettings(settingsData, userId);

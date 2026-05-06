@@ -731,11 +731,6 @@ export default function SettingsDashboardPage() {
         exchangeRates: financeSettings.exchangeRates,
         // lastRatesUpdate will be set by backend automatically
       },
-      apiKeys: {
-        geminiApiKey: apiKeys.geminiApiKey,
-        googleCloudCredentials: apiKeys.googleCloudCredentials,
-        // lastUpdated will be set by backend automatically
-      },
       teacherProfitSettings: {
         enabled: teacherProfitSettings.enabled,
         courseSalesPercentage: teacherProfitSettings.courseSalesPercentage,
@@ -749,6 +744,14 @@ export default function SettingsDashboardPage() {
       },
       heroStats,
     };
+
+    if (activeTab === "api-keys") {
+      updateData.apiKeys = {
+        geminiApiKey: apiKeys.geminiApiKey,
+        googleCloudCredentials: apiKeys.googleCloudCredentials,
+        // lastUpdated will be set by backend automatically
+      };
+    }
 
     const hasFiles =
       !!formData.logoFile ||

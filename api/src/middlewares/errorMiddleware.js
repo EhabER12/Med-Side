@@ -124,6 +124,16 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
+  if (err.type === "entity.too.large" || err.status === 413) {
+    return res.status(HTTP_STATUS.PAYLOAD_TOO_LARGE || 413).json({
+      success: false,
+      error: {
+        code: "PAYLOAD_TOO_LARGE",
+        message: "Request body is too large",
+      },
+    });
+  }
+
   // Default server error
   return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
     success: false,

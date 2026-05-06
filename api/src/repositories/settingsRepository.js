@@ -26,7 +26,7 @@ export class SettingsRepository extends BaseRepository {
     const settings = await this.model
       .findOne()
       .select(
-        "-paymentGateways -notifications -whatsappQrCode -qrCode -subscriptionTeachers"
+        "-paymentGateways -notifications -whatsappQrCode -qrCode -subscriptionTeachers -apiKeys"
       );
 
     if (settings) {
