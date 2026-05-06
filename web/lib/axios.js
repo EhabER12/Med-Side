@@ -81,12 +81,13 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Retry logic for network errors or 5xx errors - but NOT for POST requests to prevent duplicates
+    // Retry only safe/idempotent reads. Do not retry writes such as settings saves.
+    const retryableMethods = new Set(["get", "head", "options"]);
     const shouldRetry =
       config &&
       !config._retry &&
       config._retryCount < 2 &&
-      config.method !== "post" && // Don't retry POST requests to prevent duplicate submissions
+      retryableMethods.has((config.method || "get").toLowerCase()) &&
       (error.code === "ECONNABORTED" ||
         error.code === "ERR_NETWORK" ||
         error.message === "Network Error" ||

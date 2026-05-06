@@ -43,12 +43,31 @@ export class SettingsRepository extends BaseRepository {
   }
 
   async updateSettings(data, userId) {
-    const settings = await this.getSettings();
+    let settings = await this.model.findOne().select("_id");
 
-    Object.assign(settings, data);
-    settings.updatedBy = userId;
+    if (!settings) {
+      settings = await this.model.create({
+        siteName: "Genoun LLC",
+        siteDescription: "Your next adventure starts here",
+        contactEmail: "info@travelagency.com",
+        contactPhone: "+1234567890",
+        address: "123 Travel Street, Adventure City",
+      });
+    }
 
-    return settings.save();
+    return this.model.findByIdAndUpdate(
+      settings._id,
+      {
+        $set: {
+          ...data,
+          updatedBy: userId,
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
   }
 
   async getPublicSettings() {
